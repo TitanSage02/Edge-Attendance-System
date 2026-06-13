@@ -1,0 +1,146 @@
+services:
+  # Service Base de données PostgreSQL - Configuration VM
+  db:
+    image: postgres:15-alpine
+    container_name: crec-db-prod
+    hostname: db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-crec_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_SHARED_BUFFERS: "32MB"
+      POSTGRES_EFFECTIVE_CACHE_SIZE: "64MB"
+      POSTGRES_WORK_MEM: "1MB"
+      POSTGRES_MAINTENANCE_WORK_MEM: "8MB"
+      POSTGRES_MAX_CONNECTIONS: "20"
+      POSTGRES_CHECKPOINT_SEGMENTS: "8"
+    volumes:
+      - postgres_data_vm:/var/lib/postgresql/data
+      - ${PWD}/db-init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - crec-network-vm
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-crec_db}"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: crec-mosquitto-prod
+    user: mosquitto
+    ports:
+      - "0.0.0.0:${MQTT_PORT:-1883}:1883"
+      - "0.0.0.0:${MQTT_WS_PORT:-9001}:9001"
+    volumes:
+      - ${PWD}/mosquitto/mosquitto-docker-entrypoint.sh:/docker-entrypoint.sh:ro
+      - mosquitto_data_vm:/mosquitto/data
+      - mosquitto_logs_vm:/mosquitto/log
+    environment:
+      - MOSQUITTO_USERNAME=backend-crec
+      - MOSQUITTO_PASSWORD=crec-backend-secure-2025
+      - MQTT_USER=crec-module
+      - MQTT_PASSWORD=crec-module-2025
+      - MONITORING_USERNAME=monitoring
+      - MONITORING_PASSWORD=crec-monitoring-secure-2025
+    entrypoint: /docker-entrypoint.sh
+    networks:
+      - crec-network-vm
+    restart: unless-stopped
+    healthcheck:
+      test: 
+        - CMD-SHELL
+        - mosquitto_pub -h localhost -p 1883 -t test/healthcheck -m "$(date)" -u $${MONITORING_USERNAME} -P $${MONITORING_PASSWORD} -q 0 -i health_check
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: crec-backend-api
+    init: true
+    ports:
+      - "0.0.0.0:8000:8000"
+    environment:
+      - ENV=production
+      - DEBUG=false
+      - LOG_LEVEL=info
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - UVICORN_WORKERS=1
+      - UVICORN_MAX_REQUESTS=1000
+      - UVICORN_MAX_REQUESTS_JITTER=100
+      - POSTGRES_DB=${POSTGRES_DB:-crec_db}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - SQLALCHEMY_DATABASE_URI=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-crec_db}
+      - DB_POOL_SIZE=5
+      - DB_MAX_OVERFLOW=10
+      - DB_POOL_TIMEOUT=30
+      - MQTT_HOST=mosquitto
+      - MQTT_PORT=1883
+      - MQTT_USER=backend-crec
+      - MQTT_PASSWORD=crec-backend-secure-2025
+      - MQTT_USERNAME=backend-crec
+      - MQTT_USE_TLS=false
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - ACCESS_TTL_MINUTES=60
+      - REFRESH_TTL_DAYS=7
+      - ALGORITHM=HS256
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM=${SMTP_FROM}
+      - SMTP_FROM_NAME=${SMTP_FROM_NAME:-Edge Attendance System}
+      - FIRST_USER_EMAIL=${FIRST_USER_EMAIL}
+      - FIRST_USER_FIRST_NAME=${FIRST_USER_FIRST_NAME}
+      - FIRST_USER_LAST_NAME=${FIRST_USER_LAST_NAME}
+      - MALLOC_ARENA_MAX=2
+      - MALLOC_MMAP_THRESHOLD_=131072
+      - MALLOC_TRIM_THRESHOLD_=131072
+      - MALLOC_TOP_PAD_=131072
+      - MALLOC_MMAP_MAX_=65536
+    env_file:
+      - .env
+    volumes:
+      - crec_data_vm:/backend-crec/data
+      - crec_logs_vm:/backend-crec/logs
+      - crec_vector_db_vm:/backend-crec/vector_db
+    depends_on:
+      db:
+        condition: service_healthy
+      mosquitto:
+        condition: service_healthy
+    networks:
+      - crec-network-vm
+    restart: on-failure:5
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 120s
+
+volumes:
+  postgres_data_vm:
+  mosquitto_config_vm:
+  mosquitto_data_vm:
+  mosquitto_logs_vm:
+  crec_data_vm:
+  crec_logs_vm:
+  crec_vector_db_vm:
+
+networks:
+  crec-network-vm:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 1450

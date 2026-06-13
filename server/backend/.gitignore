@@ -1,0 +1,35 @@
+__pycache__/
+security/
+logs/
+scripts/
+tests/
+data/
+.env
+.env.local
+.env.production
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.log
+*.txt
+*.zip
+
+
+test*
+vector_db/
+
+# Docker
+.dockerignore
+
+# SSL certificates
+ssl/
+*.pem
+*.key
+*.crt
+
+# Backup files
+*.backup
+*.bak
+backups/
