@@ -1,0 +1,102 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .class-box { fill: #f0f8ff; stroke: #4169e1; stroke-width: 2; }
+      .class-title { fill: #000080; font-weight: bold; font-size: 14px; }
+      .class-content { fill: #000; font-size: 11px; }
+      .interface-box { fill: #ffe4e1; stroke: #dc143c; stroke-width: 2; stroke-dasharray: 5,5; }
+      .interface-title { fill: #8b0000; font-weight: bold; font-size: 12px; }
+      .arrow { stroke: #333; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .composition { stroke: #333; stroke-width: 2; fill: none; marker-end: url(#diamond); }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333" />
+    </marker>
+    <marker id="diamond" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto">
+      <polygon points="0 4, 6 0, 12 4, 6 8" fill="white" stroke="#333" stroke-width="1" />
+    </marker>
+  </defs>
+  
+  <!-- MainController -->
+  <rect x="300" y="50" width="200" height="120" class="class-box"/>
+  <text x="400" y="70" text-anchor="middle" class="class-title">MainController</text>
+  <line x1="310" y1="75" x2="490" y2="75" stroke="#4169e1" stroke-width="1"/>
+  <text x="310" y="90" class="class-content">- rfidReader: RFIDReader*</text>
+  <text x="310" y="105" class="class-content">- lcdDisplay: LCDDisplay*</text>
+  <text x="310" y="120" class="class-content">- ledIndicator: LedIndicator*</text>
+  <text x="310" y="135" class="class-content">- buzzer: Buzzer*</text>
+  <line x1="310" y1="140" x2="490" y2="140" stroke="#4169e1" stroke-width="1"/>
+  <text x="310" y="155" class="class-content">+ setup(): void</text>
+  <text x="310" y="165" class="class-content">+ loop(): void</text>
+  
+  <!-- RFIDReader -->
+  <rect x="50" y="250" width="180" height="100" class="class-box"/>
+  <text x="140" y="270" text-anchor="middle" class="class-title">RFIDReader</text>
+  <line x1="60" y1="275" x2="220" y2="275" stroke="#4169e1" stroke-width="1"/>
+  <text x="60" y="290" class="class-content">- mfrc522: MFRC522</text>
+  <text x="60" y="305" class="class-content">- ss_pin: int</text>
+  <text x="60" y="320" class="class-content">- rst_pin: int</text>
+  <line x1="60" y1="325" x2="220" y2="325" stroke="#4169e1" stroke-width="1"/>
+  <text x="60" y="340" class="class-content">+ init(): bool</text>
+  <text x="60" y="350" class="class-content">+ readCard(): String</text>
+  
+  <!-- LCDDisplay -->
+  <rect x="270" y="250" width="180" height="100" class="class-box"/>
+  <text x="360" y="270" text-anchor="middle" class="class-title">LCDDisplay</text>
+  <line x1="280" y1="275" x2="440" y2="275" stroke="#4169e1" stroke-width="1"/>
+  <text x="280" y="290" class="class-content">- lcd: LiquidCrystal_I2C</text>
+  <text x="280" y="305" class="class-content">- address: uint8_t</text>
+  <text x="280" y="320" class="class-content">- cols, rows: int</text>
+  <line x1="280" y1="325" x2="440" y2="325" stroke="#4169e1" stroke-width="1"/>
+  <text x="280" y="340" class="class-content">+ init(): bool</text>
+  <text x="280" y="350" class="class-content">+ displayUID(String): void</text>
+  
+  <!-- LedIndicator -->
+  <rect x="490" y="250" width="180" height="100" class="class-box"/>
+  <text x="580" y="270" text-anchor="middle" class="class-title">LedIndicator</text>
+  <line x1="500" y1="275" x2="660" y2="275" stroke="#4169e1" stroke-width="1"/>
+  <text x="500" y="290" class="class-content">- pin: int</text>
+  <text x="500" y="305" class="class-content">- state: bool</text>
+  <line x1="500" y1="315" x2="660" y2="315" stroke="#4169e1" stroke-width="1"/>
+  <text x="500" y="330" class="class-content">+ init(): void</text>
+  <text x="500" y="340" class="class-content">+ turnOn(): void</text>
+  <text x="500" y="350" class="class-content">+ turnOff(): void</text>
+  
+  <!-- Buzzer -->
+  <rect x="300" y="400" width="180" height="100" class="class-box"/>
+  <text x="390" y="420" text-anchor="middle" class="class-title">Buzzer</text>
+  <line x1="310" y1="425" x2="470" y2="425" stroke="#4169e1" stroke-width="1"/>
+  <text x="310" y="440" class="class-content">- pin: int</text>
+  <text x="310" y="455" class="class-content">- duration: int</text>
+  <line x1="310" y1="465" x2="470" y2="465" stroke="#4169e1" stroke-width="1"/>
+  <text x="310" y="480" class="class-content">+ init(): void</text>
+  <text x="310" y="490" class="class-content">+ beep(): void</text>
+  
+  <!-- Hardware Interface -->
+  <rect x="50" y="450" width="180" height="80" class="interface-box"/>
+  <text x="140" y="470" text-anchor="middle" class="interface-title">&lt;&lt;interface&gt;&gt;</text>
+  <text x="140" y="485" text-anchor="middle" class="interface-title">HardwareInterface</text>
+  <line x1="60" y1="490" x2="220" y2="490" stroke="#dc143c" stroke-width="1"/>
+  <text x="60" y="505" class="class-content">+ init(): bool</text>
+  <text x="60" y="520" class="class-content">+ isReady(): bool</text>
+  
+  <!-- Composition arrows -->
+  <line x1="400" y1="170" x2="140" y2="250" class="composition"/>
+  <line x1="400" y1="170" x2="360" y2="250" class="composition"/>
+  <line x1="400" y1="170" x2="580" y2="250" class="composition"/>
+  <line x1="400" y1="170" x2="390" y2="400" class="composition"/>
+  
+  <!-- Interface implementation -->
+  <line x1="140" y1="350" x2="140" y2="450" class="arrow" stroke-dasharray="5,5"/>
+  <line x1="360" y1="350" x2="140" y2="450" class="arrow" stroke-dasharray="5,5"/>
+  
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="class-title" font-size="16px">Module 1 - Diagramme de classes UML</text>
+  
+  <!-- Legend -->
+  <text x="650" y="450" class="class-content" font-size="10px">Légende:</text>
+  <line x1="650" y1="460" x2="680" y2="460" class="composition"/>
+  <text x="690" y="465" class="class-content" font-size="10px">Composition</text>
+  <line x1="650" y1="475" x2="680" y2="475" class="arrow" stroke-dasharray="5,5"/>
+  <text x="690" y="480" class="class-content" font-size="10px">Implémentation</text>
+</svg>
