@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Secret scanning: fail the build if any credential is committed.
+  # ---------------------------------------------------------------------------
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ---------------------------------------------------------------------------
+  # Deterministic gate: every Python file must byte-compile (catches syntax,
+  # bad imports, broken package structure). No hardware or heavy deps needed.
+  # ---------------------------------------------------------------------------
+  python-compile:
+    name: Python byte-compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Compile edge-attendance-unit
+        run: python -m compileall -q edge-attendance-unit -x 'config_web'
+      - name: Compile server/backend
+        run: python -m compileall -q server/backend/app
+
+  # ---------------------------------------------------------------------------
+  # Edge unit unit tests. Pi-only/heavy libs are stubbed in conftest.py.
+  # A handful of pre-existing broken/hardware-coupled tests are excluded here
+  # and documented in edge-attendance-unit/tests/README.md (follow-up work).
+  # ---------------------------------------------------------------------------
+  edge-unit-tests:
+    name: Edge unit tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: edge-attendance-unit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install dev dependencies
+        run: pip install -r requirements-dev.txt
+      - name: Run tests (runnable subset)
+        run: |
+          python -m pytest tests/ \
+            --ignore=tests/test_integration.py \
+            --ignore=tests/test_mqtt_manager.py \
+            --ignore=tests/test_rfid.py \
+            --deselect "tests/test_auth_manager.py::TestAuthenticationManager::test_authenticate_student_face_only" \
+            --deselect "tests/test_auth_manager.py::TestAuthenticationManager::test_authenticate_student_rfid_only" \
+            --deselect "tests/test_data_manager.py::TestDataManager::test_find_matching_student_no_match" \
+            --deselect "tests/test_feedback.py::test_interactive_feedback" \
+            --timeout=30 -p no:cacheprovider -q
+
+  # ---------------------------------------------------------------------------
+  # Frontend: install, lint, and production build.
+  # ---------------------------------------------------------------------------
+  frontend:
+    name: Frontend build & lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: server/frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Build
+        run: npm run build

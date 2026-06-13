@@ -1,0 +1,21 @@
+# Pre-commit hooks. Install once: `pip install pre-commit && pre-commit install`
+# Run on all files: `pre-commit run --all-files`
+repos:
+  # ---- Secret scanning (defense-in-depth against committing credentials) ----
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+
+  # ---- General hygiene ----
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: detect-private-key
+      - id: check-added-large-files
+        args: ["--maxkb=2048"]   # block accidental model/binary commits
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: check-json
