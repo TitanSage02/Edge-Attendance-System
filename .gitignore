@@ -1,0 +1,72 @@
+# ============================================================
+# Edge Attendance System — root .gitignore
+# ============================================================
+
+# ---- Secrets & environment ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+security/
+ca-certificate.crt
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+reports/
+
+# ---- Runtime data & models (never commit) ----
+# InsightFace / buffalo_l models are auto-downloaded at first run
+**/face_recognition/models/
+*.onnx
+*.zip
+data/
+vector_db/
+chroma*/
+sensor_data/
+test_images/
+*.db
+*.sqlite3
+*.sqlite
+
+# ---- Logs ----
+logs/
+*.log
+
+# ---- Node / frontend ----
+node_modules/
+.npm/
+# Built output (regenerate with `npm run build`)
+/server/frontend/dist/
+dist-ssr/
+*.local
+
+# ---- Editor / OS ----
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# ---- KiCad backups & fabrication artifacts ----
+*-backups/
+*.kicad_prl
+fp-info-cache
