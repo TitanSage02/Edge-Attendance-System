@@ -1,0 +1,12 @@
+.env
+/pycache
+__pycache__/
+*.pyc
+venv/
+*.pyo
+*.pyd
+*.db
+
+test_images/
+*.log
+sensor_data/

@@ -1,0 +1,30 @@
+[Unit]
+Description=Edge Attendance System Detection Module
+After=network.target
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=unit
+Group=unit
+WorkingDirectory=/home/unit/CREC-Presence-Unit
+ExecStart=/home/unit/CREC-Presence-Unit/venv/bin/python /home/unit/CREC-Presence-Unit/startup.py
+Restart=always
+RestartSec=10
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# Variables d'environnement
+Environment=PYTHONPATH=/home/unit/CREC-Presence-Unit
+Environment=VIRTUAL_ENV=/home/unit/CREC-Presence-Unit/venv
+Environment=PATH=/home/unit/CREC-Presence-Unit/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Logging
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=crec-presence
+
+[Install]
+WantedBy=multi-user.target

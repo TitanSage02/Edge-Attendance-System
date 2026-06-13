@@ -1,0 +1,40 @@
+# Base
+python-dotenv==1.0.0
+asyncio==3.4.3
+aiohttp==3.8.5
+aiofiles==23.2.1
+
+# Reconnaissance faciale
+insightface==0.7.3
+opencv-python==4.8.0.76
+numpy==1.24.3
+pillow==10.0.0
+
+# RFID
+spidev==3.6
+mfrc522==0.0.7
+RPi.GPIO==0.7.1
+
+# Base de données vectorielles
+chromadb==1.0.13
+onnxruntime==1.15.1
+
+# Communication MQTT
+paho-mqtt==1.6.1
+aiomqtt==1.2.0
+
+# Hardware
+adafruit-circuitpython-vl53l0x
+board==1.0
+
+# Utilitaires
+colorama==0.4.6
+tqdm==4.66.1
+psutil==5.9.5
+
+# Tests
+pytest==7.4.0
+pytest-asyncio==0.21.1
+pytest-mock==3.11.1
+pytest-cov==4.1.0
+coverage==7.3.2

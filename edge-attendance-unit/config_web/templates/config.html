@@ -1,0 +1,968 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card border-0 bg-gradient-primary text-white">
+                <div class="card-body text-center">
+                    <h2 class="mb-0">
+                        <i class="fas fa-cogs me-3"></i>
+                        Configuration Edge Attendance Unit
+                    </h2>
+                    <p class="mb-0 mt-2 opacity-75">Configurez votre module de présence pour fonctionner en local ou en production</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Sélecteur de Mode -->
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light border-0">
+                    <h5 class="mb-0 text-primary">
+                        <i class="fas fa-toggle-on me-2"></i>
+                        Mode de Connexion
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-check form-check-lg p-3 border rounded" id="mode-local">
+                                <input class="form-check-input" type="radio" name="connection_mode" id="mode_local" value="local" onchange="switchMode('local')">
+                                <label class="form-check-label w-100" for="mode_local">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3">
+                                            <i class="fas fa-home fa-2x text-success"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-1">Mode Local</h6>
+                                            <small class="text-muted">Connexion directe au Pi/serveur local<br>
+                                            MQTT natif (port 1883)</small>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-check-lg p-3 border rounded" id="mode-prod">
+                                <input class="form-check-input" type="radio" name="connection_mode" id="mode_production" value="prod" onchange="switchMode('prod')">
+                                <label class="form-check-label w-100" for="mode_production">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3">
+                                            <i class="fas fa-cloud fa-2x text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-1">Mode Production</h6>
+                                            <small class="text-muted">Via Cloudflare tunnel<br>
+                                            WebSocket (port 443)</small>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Indicateur visuel du mode actuel -->
+                    <div class="mt-3 p-3 rounded" id="mode-indicator" style="display: none;">
+                        <div class="d-flex align-items-center">
+                            <i id="mode-icon" class="fas fa-circle me-2"></i>
+                            <span id="mode-text"></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Bouton pour continuer -->
+                    <div class="mt-3 text-center" id="continue-section" style="display: none;">
+                        <button type="button" class="btn btn-success btn-lg" onclick="showConfigSections()">
+                            <i class="fas fa-arrow-right me-2"></i>
+                            Continuer la Configuration
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sections de configuration (cachées initialement) -->
+    <div class="row g-4 mt-2" id="config-sections" style="display: none;">
+        <!-- Configuration Générale -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-light border-0">
+                    <h5 class="mb-0 text-primary">
+                        <i class="fas fa-server me-2"></i>
+                        Configuration Générale
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="configForm">
+                        <div class="mb-3">
+                            <label for="MODULE_ID" class="form-label">
+                                <i class="fas fa-tag me-1"></i>
+                                ID du Module
+                            </label>
+                            <input type="text" class="form-control" id="MODULE_ID" name="MODULE_ID" 
+                                   value="{{ config.get('MODULE_ID', '') }}" 
+                                   placeholder="module-01" required>
+                            <div class="form-text">Identifiant unique de ce module</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="BASE_URL" class="form-label">
+                                <i class="fas fa-link me-1"></i>
+                                URL du Backend
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i id="url-icon" class="fas fa-home text-success"></i>
+                                </span>
+                                <input type="url" class="form-control" id="BASE_URL" name="BASE_URL" 
+                                       value="{{ config.get('BASE_URL', '') }}" 
+                                       placeholder="http://192.168.1.100:8000" required>
+                                <button class="btn btn-outline-secondary" type="button" onclick="testConnection()">
+                                    <i class="fas fa-plug"></i>
+                                </button>
+                            </div>
+                            <div class="form-text" id="url-help">
+                                🏠 Local: http://192.168.x.x:8000 | 🌐 Prod: https://votre-domaine.com
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="API_KEY" class="form-label">
+                                <i class="fas fa-key me-1"></i>
+                                Clé API
+                            </label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="API_KEY" name="API_KEY" 
+                                       value="{{ config.get('API_KEY', '') }}" 
+                                       placeholder="Clé d'authentification" required>
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('API_KEY')">
+                                    <i class="fas fa-eye" id="API_KEY-icon"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration MQTT -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-light border-0">
+                    <h5 class="mb-0 text-primary">
+                        <i class="fas fa-exchange-alt me-2"></i>
+                        Configuration MQTT
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Configuration Local -->
+                    <div id="mqtt-local-config" style="display: none;">
+                        <div class="alert alert-info border-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Mode Local</strong> - Connexion MQTT directe
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="MQTT_BROKER_LOCAL" class="form-label">
+                                <i class="fas fa-broadcast-tower me-1"></i>
+                                Adresse IP du Broker
+                            </label>
+                            <input type="text" class="form-control" id="MQTT_BROKER_LOCAL" name="MQTT_BROKER" 
+                                   value="{{ config.get('MQTT_BROKER', '') }}" 
+                                   placeholder="192.168.1.100">
+                            <div class="form-text">IP locale du Raspberry Pi ou serveur</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="MQTT_PORT_LOCAL" class="form-label">Port MQTT</label>
+                            <input type="number" class="form-control" id="MQTT_PORT_LOCAL" name="MQTT_PORT" 
+                                   value="{{ config.get('MQTT_PORT', '1883') }}" 
+                                   placeholder="1883">
+                        </div>
+                    </div>
+
+                    <!-- Configuration Production -->
+                    <div id="mqtt-prod-config" style="display: none;">
+                        <div class="alert alert-warning border-0">
+                            <i class="fas fa-cloud me-2"></i>
+                            <strong>Mode Production</strong> - WebSocket via Cloudflare
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="MQTT_BROKER_PROD" class="form-label">
+                                <i class="fas fa-globe me-1"></i>
+                                Domaine MQTT
+                            </label>
+                            <input type="text" class="form-control" id="MQTT_BROKER_PROD" name="MQTT_BROKER" 
+                                   value="{{ config.get('MQTT_BROKER', '') }}" 
+                                   placeholder="mqtt.votre-domaine.com">
+                            <div class="form-text">Domaine configuré avec Cloudflare tunnel</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="MQTT_WSS_PORT" class="form-label">Port WebSocket</label>
+                            <input type="number" class="form-control" id="MQTT_WSS_PORT" name="MQTT_WSS_PORT" 
+                                   value="{{ config.get('MQTT_WSS_PORT', '443') }}" 
+                                   placeholder="443">
+                            <div class="form-text">Port WebSocket via Cloudflare</div>
+                        </div>
+                    </div>
+
+                    <!-- Authentification commune -->
+                    <div id="mqtt-auth-config">
+                        <hr class="my-4">
+                        <h6 class="text-muted mb-3">
+                            <i class="fas fa-user-shield me-2"></i>
+                            Authentification
+                        </h6>
+                        
+                        <div class="mb-3">
+                            <label for="MQTT_USERNAME" class="form-label">
+                                <i class="fas fa-user me-1"></i>
+                                Nom d'utilisateur
+                            </label>
+                            <input type="text" class="form-control" id="MQTT_USERNAME" name="MQTT_USERNAME" 
+                                   value="{{ config.get('MQTT_USERNAME', 'crec-module') }}" 
+                                   placeholder="crec-module">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="MQTT_PASSWORD" class="form-label">
+                                <i class="fas fa-lock me-1"></i>
+                                Mot de passe
+                            </label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="MQTT_PASSWORD" name="MQTT_PASSWORD" 
+                                       value="{{ config.get('MQTT_PASSWORD', '') }}" 
+                                       placeholder="Mot de passe MQTT">
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('MQTT_PASSWORD')">
+                                    <i class="fas fa-eye" id="MQTT_PASSWORD-icon"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration Matériel -->
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light border-0">
+                    <h5 class="mb-0 text-primary">
+                        <i class="fas fa-microchip me-2"></i>
+                        Configuration Matériel
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label for="DISTANCE_THRESHOLD_MM" class="form-label">
+                                <i class="fas fa-ruler me-1"></i>
+                                Seuil Distance (mm)
+                            </label>
+                            <input type="number" class="form-control" id="DISTANCE_THRESHOLD_MM" name="DISTANCE_THRESHOLD_MM" 
+                                   value="{{ config.get('DISTANCE_THRESHOLD_MM', '100') }}" 
+                                   placeholder="100" min="10" max="1000">
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <label for="SIMILARITY_THRESHOLD" class="form-label">
+                                <i class="fas fa-percentage me-1"></i>
+                                Seuil Similarité
+                            </label>
+                            <input type="number" class="form-control" id="SIMILARITY_THRESHOLD" name="SIMILARITY_THRESHOLD" 
+                                   value="{{ config.get('SIMILARITY_THRESHOLD', '0.8') }}" 
+                                   placeholder="0.8" step="0.01" min="0.1" max="1.0">
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <label for="PRESENCE_COOLDOWN" class="form-label">
+                                <i class="fas fa-clock me-1"></i>
+                                Cooldown (sec)
+                            </label>
+                            <input type="number" class="form-control" id="PRESENCE_COOLDOWN" name="PRESENCE_COOLDOWN" 
+                                   value="{{ config.get('PRESENCE_COOLDOWN', '300') }}" 
+                                   placeholder="300" min="60" max="3600">
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <label for="MAX_FAILURES" class="form-label">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                Max Échecs
+                            </label>
+                            <input type="number" class="form-control" id="MAX_FAILURES" name="MAX_FAILURES" 
+                                   value="{{ config.get('MAX_FAILURES', '5') }}" 
+                                   placeholder="5" min="1" max="20">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Boutons d'action -->
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light border-0">
+                    <h5 class="mb-0 text-primary">
+                        <i class="fas fa-cog me-2"></i>
+                        Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <!-- Actions secondaires -->
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">
+                                <i class="fas fa-tools me-2"></i>
+                                Utilitaires
+                            </h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
+                                    <i class="fas fa-undo me-2"></i>
+                                    Réinitialiser
+                                </button>
+                                <button type="button" class="btn btn-outline-info" onclick="exportConfig()">
+                                    <i class="fas fa-download me-2"></i>
+                                    Exporter Config
+                                </button>
+                                <button type="button" class="btn btn-outline-warning" onclick="importConfig()">
+                                    <i class="fas fa-upload me-2"></i>
+                                    Importer Config
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Action principale -->
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">
+                                <i class="fas fa-save me-2"></i>
+                                Sauvegarde
+                            </h6>
+                            <div class="d-flex justify-content-end">
+                                <button type="button" class="btn btn-success btn-lg px-4" onclick="saveConfiguration()">
+                                    <i class="fas fa-save me-2"></i>
+                                    Sauvegarder & Redémarrer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Actions de test -->
+                    <hr class="my-4">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <h6 class="text-muted mb-3">
+                                <i class="fas fa-vial me-2"></i>
+                                Tests de Connectivité
+                            </h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="testAllConnections()">
+                                    <i class="fas fa-network-wired me-1"></i>
+                                    Tester Tout
+                                </button>
+                                <button type="button" class="btn btn-outline-success btn-sm" onclick="testConnection()">
+                                    <i class="fas fa-plug me-1"></i>
+                                    Test Backend
+                                </button>
+                                <button type="button" class="btn btn-outline-warning btn-sm" onclick="testMqttConnection()">
+                                    <i class="fas fa-satellite-dish me-1"></i>
+                                    Test MQTT
+                                </button>
+                                <button type="button" class="btn btn-outline-info btn-sm" onclick="testHardware()">
+                                    <i class="fas fa-microchip me-1"></i>
+                                    Test Matériel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmation -->
+<div class="modal fade" id="confirmModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white border-0">
+                <h5 class="modal-title">
+                    <i class="fas fa-save me-2"></i>
+                    Confirmer la Sauvegarde
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info border-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Les modifications seront appliquées et le module redémarrera automatiquement.
+                </div>
+                
+                <h6 class="text-primary mb-3">Résumé des modifications :</h6>
+                <div id="changes-preview" class="bg-light p-3 rounded">
+                    <!-- Aperçu des changements -->
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>
+                    Annuler
+                </button>
+                <button type="button" class="btn btn-primary" onclick="confirmSave()">
+                    <i class="fas fa-check me-1"></i>
+                    Confirmer et Redémarrer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 11"></div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Configuration initiale pour comparaison
+const initialConfig = JSON.parse('{{ config | tojson | safe }}');
+
+// État actuel
+let currentMode = 'local';
+
+// Détecter le mode actuel
+function detectCurrentMode() {
+    const broker = document.getElementById('BASE_URL').value;
+    const isLocalIP = /^(http:\/\/)?(192\.168\.|10\.|172\.|127\.|localhost)/.test(broker);
+    
+    if (isLocalIP) {
+        currentMode = 'local';
+        document.getElementById('mode_local').checked = true;
+    } else {
+        currentMode = 'prod';
+        document.getElementById('mode_production').checked = true;
+    }
+    
+    switchMode(currentMode);
+}
+
+// Basculer entre les modes
+function switchMode(mode) {
+    currentMode = mode;
+    
+    const localConfig = document.getElementById('mqtt-local-config');
+    const prodConfig = document.getElementById('mqtt-prod-config');
+    const modeIndicator = document.getElementById('mode-indicator');
+    const modeIcon = document.getElementById('mode-icon');
+    const modeText = document.getElementById('mode-text');
+    const urlIcon = document.getElementById('url-icon');
+    const urlHelp = document.getElementById('url-help');
+    
+    // Reset styles
+    document.getElementById('mode-local').classList.remove('border-success', 'bg-light');
+    document.getElementById('mode-prod').classList.remove('border-primary', 'bg-light');
+    
+    if (mode === 'local') {
+        localConfig.style.display = 'block';
+        prodConfig.style.display = 'none';
+        
+        // Style du sélecteur
+        document.getElementById('mode-local').classList.add('border-success', 'bg-light');
+        
+        // Indicateur
+        modeIndicator.style.display = 'block';
+        modeIndicator.className = 'mt-3 p-3 rounded bg-success bg-opacity-10 border border-success';
+        modeIcon.className = 'fas fa-circle me-2 text-success';
+        modeText.innerHTML = '<strong>Mode Local actif</strong> - Connexion MQTT directe (port 1883)';
+        
+        // URL icon
+        urlIcon.className = 'fas fa-home text-success';
+        urlHelp.innerHTML = '🏠 Local: http://192.168.x.x:8000';
+        
+        // Afficher le bouton continuer
+        document.getElementById('continue-section').style.display = 'block';
+        
+    } else {
+        localConfig.style.display = 'none';
+        prodConfig.style.display = 'block';
+        
+        // Style du sélecteur
+        document.getElementById('mode-prod').classList.add('border-primary', 'bg-light');
+        
+        // Indicateur
+        modeIndicator.style.display = 'block';
+        modeIndicator.className = 'mt-3 p-3 rounded bg-primary bg-opacity-10 border border-primary';
+        modeIcon.className = 'fas fa-circle me-2 text-primary';
+        modeText.innerHTML = '<strong>Mode Production actif</strong> - WebSocket via Cloudflare (port 443)';
+        
+        // URL icon
+        urlIcon.className = 'fas fa-cloud text-primary';
+        urlHelp.innerHTML = '🌐 Prod: https://votre-domaine.com';
+        
+        // Afficher le bouton continuer
+        document.getElementById('continue-section').style.display = 'block';
+    }
+}
+
+// Afficher les sections de configuration
+function showConfigSections() {
+    document.getElementById('config-sections').style.display = 'block';
+    document.getElementById('continue-section').style.display = 'none';
+    
+    // Scroll vers la configuration
+    document.getElementById('config-sections').scrollIntoView({ 
+        behavior: 'smooth' 
+    });
+}
+
+// Basculer la visibilité des mots de passe
+function togglePassword(fieldId) {
+    const field = document.getElementById(fieldId);
+    const icon = document.getElementById(fieldId + '-icon');
+    
+    if (field.type === 'password') {
+        field.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+    } else {
+        field.type = 'password';
+        icon.className = 'fas fa-eye';
+    }
+}
+
+// Test de connexion backend
+async function testConnection() {
+    const btn = event.target.closest('button');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    btn.disabled = true;
+
+    try {
+        const baseUrl = document.getElementById('BASE_URL').value;
+        const response = await fetch('/api/test-connection', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ BASE_URL: baseUrl })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            showToast('✅ Connexion backend réussie !', 'success');
+        } else {
+            showToast('❌ Échec connexion: ' + result.message, 'danger');
+        }
+    } catch (error) {
+        showToast('❌ Erreur: ' + error.message, 'danger');
+    } finally {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+    }
+}
+
+// Test de connexion MQTT
+async function testMqttConnection() {
+    const btn = event.target;
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Test...';
+    btn.disabled = true;
+
+    try {
+        const mqttConfig = getMqttConfigForMode();
+        const response = await fetch('/api/test-mqtt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(mqttConfig)
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            showToast('✅ Connexion MQTT réussie !', 'success');
+        } else {
+            showToast('❌ MQTT échec: ' + result.message, 'danger');
+        }
+    } catch (error) {
+        showToast('❌ Erreur MQTT: ' + error.message, 'danger');
+    } finally {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+    }
+}
+
+// Obtenir la config MQTT selon le mode
+function getMqttConfigForMode() {
+    const config = {
+        mode: currentMode,
+        MQTT_USERNAME: document.getElementById('MQTT_USERNAME').value,
+        MQTT_PASSWORD: document.getElementById('MQTT_PASSWORD').value
+    };
+
+    if (currentMode === 'local') {
+        config.MQTT_BROKER = document.getElementById('MQTT_BROKER_LOCAL').value;
+        config.MQTT_PORT = document.getElementById('MQTT_PORT_LOCAL').value;
+        config.MQTT_USE_WEBSOCKETS = false;
+    } else {
+        config.MQTT_BROKER = document.getElementById('MQTT_BROKER_PROD').value;
+        config.MQTT_WSS_PORT = document.getElementById('MQTT_WSS_PORT').value;
+        config.MQTT_USE_WEBSOCKETS = true;
+    }
+
+    return config;
+}
+
+// Sauvegarder la configuration
+function saveConfiguration() {
+    const allData = collectFormData();
+    
+    // Générer l'aperçu des changements
+    const changes = generateChangesPreview(allData);
+    document.getElementById('changes-preview').innerHTML = changes;
+    
+    // Afficher le modal
+    const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    modal.show();
+}
+
+// Collecter toutes les données du formulaire
+function collectFormData() {
+    const data = {
+        connection_mode: currentMode,
+        MQTT_CONNECTION_MODE: currentMode,
+        MODULE_ID: document.getElementById('MODULE_ID').value,
+        BASE_URL: document.getElementById('BASE_URL').value,
+        API_KEY: document.getElementById('API_KEY').value,
+        MQTT_USERNAME: document.getElementById('MQTT_USERNAME').value,
+        MQTT_PASSWORD: document.getElementById('MQTT_PASSWORD').value,
+        DISTANCE_THRESHOLD_MM: document.getElementById('DISTANCE_THRESHOLD_MM').value,
+        SIMILARITY_THRESHOLD: document.getElementById('SIMILARITY_THRESHOLD').value,
+        PRESENCE_COOLDOWN: document.getElementById('PRESENCE_COOLDOWN').value,
+        MAX_FAILURES: document.getElementById('MAX_FAILURES').value
+    };
+
+    // Ajouter config MQTT selon le mode
+    if (currentMode === 'local') {
+        data.MQTT_BROKER = document.getElementById('MQTT_BROKER_LOCAL').value;
+        data.MQTT_PORT = document.getElementById('MQTT_PORT_LOCAL').value;
+        data.MQTT_USE_WEBSOCKETS = false;
+        data.MQTT_WSS_PORT = 443; // Valeur par défaut
+    } else {
+        data.MQTT_BROKER = document.getElementById('MQTT_BROKER_PROD').value;
+        data.MQTT_WSS_PORT = document.getElementById('MQTT_WSS_PORT').value;
+        data.MQTT_USE_WEBSOCKETS = true;
+        data.MQTT_PORT = 1883; // Valeur par défaut
+    }
+
+    return data;
+}
+
+// Générer l'aperçu des changements
+function generateChangesPreview(newData) {
+    const changes = [];
+    
+    // Changements principaux
+    for (const [key, newValue] of Object.entries(newData)) {
+        const oldValue = initialConfig[key];
+        if (String(oldValue) !== String(newValue)) {
+            const displayKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            changes.push(`
+                <div class="mb-2 p-2 border-start border-primary border-3">
+                    <strong>${displayKey}:</strong><br>
+                    <span class="text-muted small">Ancien:</span> <code>${oldValue || '(vide)'}</code><br>
+                    <span class="text-success small">Nouveau:</span> <code>${newValue || '(vide)'}</code>
+                </div>
+            `);
+        }
+    }
+    
+    if (changes.length === 0) {
+        return '<em class="text-muted">Aucune modification détectée</em>';
+    }
+    
+    return changes.join('');
+}
+
+// Confirmer la sauvegarde
+async function confirmSave() {
+    const btn = document.querySelector('#confirmModal .btn-primary');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Sauvegarde...';
+    btn.disabled = true;
+
+    try {
+        const data = collectFormData();
+        const response = await fetch('/api/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showToast('✅ Configuration sauvegardée ! Redémarrage...', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('confirmModal')).hide();
+            
+            // Redirection après sauvegarde
+            setTimeout(() => {
+                window.location.href = '{{ url_for("index") }}';
+            }, 3000);
+        } else {
+            showToast('❌ Erreur: ' + result.message, 'danger');
+        }
+    } catch (error) {
+        showToast('❌ Erreur: ' + error.message, 'danger');
+    } finally {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+    }
+}
+
+// Réinitialiser le formulaire
+function resetForm() {
+    if (confirm('Êtes-vous sûr de vouloir réinitialiser tous les champs ?')) {
+        location.reload();
+    }
+}
+
+// Exporter la configuration
+function exportConfig() {
+    const data = collectFormData();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `crec-config-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('📥 Configuration exportée', 'info');
+}
+
+// Importer une configuration
+function importConfig() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const config = JSON.parse(e.target.result);
+                    loadConfigIntoForm(config);
+                    showToast('📤 Configuration importée avec succès', 'success');
+                } catch (error) {
+                    showToast('❌ Erreur lors de l\'import: fichier JSON invalide', 'danger');
+                }
+            };
+            reader.readAsText(file);
+        }
+    };
+    input.click();
+}
+
+// Charger une configuration dans le formulaire
+function loadConfigIntoForm(config) {
+    // Configuration générale
+    if (config.MODULE_ID) document.getElementById('MODULE_ID').value = config.MODULE_ID;
+    if (config.BASE_URL) document.getElementById('BASE_URL').value = config.BASE_URL;
+    if (config.API_KEY) document.getElementById('API_KEY').value = config.API_KEY;
+    
+    // MQTT
+    if (config.MQTT_USERNAME) document.getElementById('MQTT_USERNAME').value = config.MQTT_USERNAME;
+    if (config.MQTT_PASSWORD) document.getElementById('MQTT_PASSWORD').value = config.MQTT_PASSWORD;
+    
+    // Matériel
+    if (config.DISTANCE_THRESHOLD_MM) document.getElementById('DISTANCE_THRESHOLD_MM').value = config.DISTANCE_THRESHOLD_MM;
+    if (config.SIMILARITY_THRESHOLD) document.getElementById('SIMILARITY_THRESHOLD').value = config.SIMILARITY_THRESHOLD;
+    if (config.PRESENCE_COOLDOWN) document.getElementById('PRESENCE_COOLDOWN').value = config.PRESENCE_COOLDOWN;
+    if (config.MAX_FAILURES) document.getElementById('MAX_FAILURES').value = config.MAX_FAILURES;
+    
+    // Mode et broker MQTT
+    if (config.MQTT_CONNECTION_MODE) {
+        if (config.MQTT_CONNECTION_MODE === 'local') {
+            document.getElementById('mode_local').checked = true;
+            if (config.MQTT_BROKER) document.getElementById('MQTT_BROKER_LOCAL').value = config.MQTT_BROKER;
+            if (config.MQTT_PORT) document.getElementById('MQTT_PORT_LOCAL').value = config.MQTT_PORT;
+        } else {
+            document.getElementById('mode_production').checked = true;
+            if (config.MQTT_BROKER) document.getElementById('MQTT_BROKER_PROD').value = config.MQTT_BROKER;
+            if (config.MQTT_WSS_PORT) document.getElementById('MQTT_WSS_PORT').value = config.MQTT_WSS_PORT;
+        }
+        switchMode(config.MQTT_CONNECTION_MODE);
+    }
+}
+
+// Tester toutes les connexions
+async function testAllConnections() {
+    const btn = event.target;
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Tests...';
+    btn.disabled = true;
+    
+    let allPassed = true;
+    
+    try {
+        // Test Backend
+        showToast('🔄 Test du backend...', 'info');
+        const backendResult = await testBackendConnection();
+        if (!backendResult) allPassed = false;
+        
+        // Attendre un peu
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Test MQTT
+        showToast('🔄 Test MQTT...', 'info');
+        const mqttResult = await testMqttConnection();
+        if (!mqttResult) allPassed = false;
+        
+        // Résultat final
+        if (allPassed) {
+            showToast('✅ Tous les tests réussis !', 'success');
+        } else {
+            showToast('⚠️ Certains tests ont échoué', 'warning');
+        }
+        
+    } catch (error) {
+        showToast('❌ Erreur lors des tests: ' + error.message, 'danger');
+    } finally {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+    }
+}
+
+// Test backend (version sans UI)
+async function testBackendConnection() {
+    try {
+        const baseUrl = document.getElementById('BASE_URL').value;
+        const response = await fetch('/api/test-connection', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ BASE_URL: baseUrl })
+        });
+        const result = await response.json();
+        return result.success;
+    } catch (error) {
+        return false;
+    }
+}
+
+// Test matériel
+async function testHardware() {
+    const btn = event.target;
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Test...';
+    btn.disabled = true;
+
+    try {
+        const response = await fetch('/api/test-hardware', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            showToast('✅ Test matériel réussi !', 'success');
+        } else {
+            showToast('❌ Test matériel échoué: ' + result.message, 'danger');
+        }
+    } catch (error) {
+        showToast('❌ Erreur test matériel: ' + error.message, 'danger');
+    } finally {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+    }
+}
+
+// Afficher un toast
+function showToast(message, type = 'info') {
+    const toastContainer = document.querySelector('.toast-container');
+    const toastId = 'toast-' + Date.now();
+    
+    const toastHTML = `
+        <div id="${toastId}" class="toast" role="alert">
+            <div class="toast-header">
+                <i class="fas fa-${type === 'success' ? 'check-circle text-success' : 
+                                   type === 'danger' ? 'exclamation-circle text-danger' : 
+                                   type === 'warning' ? 'exclamation-triangle text-warning' : 
+                                   'info-circle text-info'} me-2"></i>
+                <strong class="me-auto">Edge Attendance</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">${message}</div>
+        </div>
+    `;
+    
+    toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+    const toast = new bootstrap.Toast(document.getElementById(toastId));
+    toast.show();
+    
+    // Supprimer après fermeture
+    document.getElementById(toastId).addEventListener('hidden.bs.toast', function() {
+        this.remove();
+    });
+}
+
+// Initialisation
+document.addEventListener('DOMContentLoaded', function() {
+    detectCurrentMode();
+    
+    // Validation en temps réel
+    const inputs = document.querySelectorAll('.form-control');
+    inputs.forEach(input => {
+        input.addEventListener('blur', function() {
+            if (this.checkValidity()) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            } else {
+                this.classList.remove('is-valid');
+                this.classList.add('is-invalid');
+            }
+        });
+    });
+});
+</script>
+
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+}
+
+.form-check-lg .form-check-input {
+    transform: scale(1.2);
+}
+
+.form-check-lg:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+    cursor: pointer;
+}
+
+.card {
+    transition: all 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.btn {
+    transition: all 0.2s ease;
+}
+
+.border-3 {
+    border-width: 3px !important;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.fa-spinner {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+</style>
+{% endblock %}
