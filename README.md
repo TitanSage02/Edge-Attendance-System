@@ -7,7 +7,7 @@
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![Raspberry Pi](https://img.shields.io/badge/Raspberry%20Pi-4-A22846?logo=raspberrypi&logoColor=white)](https://www.raspberrypi.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![CI](https://github.com/USERNAME/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/USERNAME/REPO/actions/workflows/ci.yml)
+[![CI](https://github.com/TitanSage02/Edge-Attendance-System/actions/workflows/ci.yml/badge.svg)](https://github.com/TitanSage02/Edge-Attendance-System/actions/workflows/ci.yml)
 
 Built as my BSc Computer Science thesis (graded **18/20**), originally *"CREC Presence"*, piloted at **CREC, Benin**.
 
